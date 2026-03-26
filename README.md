@@ -271,15 +271,15 @@ sampler = WeightedRandomSampler(
 ### 4. **Primitive 기반 Tokenization**
 
 #### Primitive 빌드
-$$P = \left\{\mathbf{p}_k : \mathbf{p}_k = \left[\cos\left(\frac{2\pi k}{16}\right), \sin\left(\frac{2\pi k}{16}\right)\right]\right\}_{k=0}^{15}$$
+$$P = \{\mathbf{p}_k : \mathbf{p}_k = [\cos(2\pi k/16), \sin(2\pi k/16)]\}_{k=0}^{15}$$
 
 - $N_{primitives} = 16$개 균등 분포 벡터
 - 각 벡터는 단위 벡터 (norm = 1)
 
 #### Primitive ID 계산
-$$\text{prim\_id}(dx, dy) = \arg\max_k \left(\frac{\mathbf{p}_k \cdot \left[dx, dy\right]}{||\left[dx, dy\right]||}\right)$$
+$$\text{prim\_id}(dx, dy) = \arg\max_k \left(\frac{\mathbf{p}_k \cdot [dx, dy]}{||[dx, dy]||}\right)$$
 
-- $\left[dx, dy\right]$를 정규화한 후 가장 가까운 primitive 방향 선택
+- $[dx, dy]$를 정규화한 후 가장 가까운 primitive 방향 선택
 
 #### Scale Factor (반복 횟수)
 $$s(dx, dy) = \max(1, \min(8, \lceil L / \lambda \rceil))$$
@@ -294,11 +294,11 @@ $$L = \sqrt{dx^2 + dy^2}, \quad \lambda = 0.01 \text{ (PRIM\_LENGTH)}$$
 ### 5. **정규화 (Normalization)**
 
 #### 절대 좌표 → 상대 좌표 변환
-각 stroke 시퀀스 $s3 = \left[\left[x_0, y_0\right], \left[x_1, y_1\right], ..., \left[x_n, y_n\right]\right]$를 다음과 같이 변환:
+각 stroke 시퀀스 $s3 = [[x_0, y_0], [x_1, y_1], ..., [x_n, y_n]]$를 다음과 같이 변환:
 
 $$x_{\text{abs}}^{(i)} = x_0 + \sum_{j=0}^{i-1} dx_j, \quad y_{\text{abs}}^{(i)} = y_0 + \sum_{j=0}^{i-1} dy_j$$
 
-#### 좌표 정규화 (각 사각형 $\left[0, 1\right] \times \left[0, 1\right]$)
+#### 좌표 정규화 (각 사각형 [0, 1]×[0, 1])
 $$x'_i = \frac{x_{\text{abs}}^{(i)} - \min_j x_{\text{abs}}^{(j)}}{\max_j x_{\text{abs}}^{(j)} - \min_j x_{\text{abs}}^{(j)} + \epsilon}$$
 
 비슷하게 $y'_i$도 정규화.
@@ -498,10 +498,45 @@ outputs/<timestamp>/
 
 ```python
 CLASSES = [
-    "airplane", "bus", "canoe", "car", "helicopter",
-    "hot air balloon", "motorbike", "sailboat", "submarine", "train"
+    "airplane",           # 비행기
+    "bus",               # 버스
+    "canoe",             # 카누
+    "car",               # 자동차
+    "helicopter",        # 헬리콥터
+    "hot air balloon",   # 풍선
+    "motorbike",         # 오토바이
+    "sailboat",          # 돛단배
+    "submarine",         # 잠수함
+    "train"              # 기차
 ]
 ```
+
+**데이터 분할** (클래스당):  
+```
+Pre-train 용: 5,000개
+  ├─ Train (학습):   ~2,500개 (50%)
+  ├─ Val (검증):     ~1,250개 (25%)
+  └─ Test (테스트):  ~1,250개 (25%)
+
+Fine-tune 용: 각 클래스별 독립
+  ├─ Train (학습):   ~3,350개 (67%)
+  └─ Val (검증):     ~1,650개 (33%)
+```
+
+### 주요 상수 값
+
+| 상수명 | 값 | 의미 |
+|-------|-----|------|
+| `TOKEN_BOS` | 0 | 시작 토큰 (Begin of Sequence) |
+| `TOKEN_EOS` | 1 | 종료 토큰 (End of Sequence) |
+| `TOKEN_SEP` | 2 | Separator (펜 리프트, stroke 경계) |
+| `TOKEN_PAD` | 3 | 패딩 토큰 (패딩 위치) |
+| `SPECIAL_TOKENS` | 4 | 특수 토큰 개수 |
+| `VOCAB_SIZE` | 20 | 전체 어휘 크기 (4 + 16 primitives) |
+| `N_PRIMITIVES` | 16 | Primitive 개수 (방향 벡터) |
+| `PRIM_LENGTH` | 0.01 | Primitive 스케일 (정규화 stroke 길이) |
+| `MAX_SEQ` | 256 | 최대 시퀀스 길이 (토큰) |
+| `MAX_SEQ_HARD_LIMIT` | 512 | 절대 최대값 (메모리 보호) |
 
 ### 하이퍼파라미터 요약
 
@@ -533,6 +568,30 @@ CLASSES = [
 - **GPU Optimization**: cuBLAS TF32, cudnn.benchmark
 - **Data**: Google QuickDraw ndjson format
 - **Visualization**: Matplotlib, PIL, Scipy (spline interpolation)
+
+### 주요 함수 목록
+
+| 함수 | 역할 | 입력 | 출력 |
+|------|------|------|------|
+| `download_ndjson(class_name, max_n)` | QuickDraw 데이터 다운로드 | 클래스명, 최대 샘플 수 | 스케치 리스트 |
+| `drawing_to_stroke3(drawing)` | 드로잉 → Stroke 3-tuple | [[[x], [y]], ...] | np.ndarray [N, 3] |
+| `normalize_stroke3(s3)` | 좌표 정규화 [0,1] | np.ndarray [N, 3] | 정규화된 배열 |
+| `build_primitives(n)` | Primitive 벡터 생성 | n=16 | np.ndarray [16, 2] |
+| `prim_id(dx, dy)` | 가장 가까운 primitive 찾기 | dx, dy | 0~15 (primitive ID) |
+| `scale_factor(dx, dy)` | 토큰 반복 횟수 계산 | dx, dy | 1~8 |
+| `tokenize(s3)` | Stroke → 토큰 시퀀스 | np.ndarray [N, 3] | list of tokens |
+| `run_eda(classes, n_sample)` | EDA 분석 및 가시화 | 클래스 리스트 | (N_PRIMITIVES, MAX_SEQ, PRIM_LENGTH) |
+| `make_loader(dataset, batch_size)` | DataLoader 생성 | Dataset, int | DataLoader |
+| `make_model()` | SketchGPT 모델 초기화 | - | SketchGPT 인스턴스 |
+| `pretrain(model, train_ds, val_ds)` | Pre-training 실행 | 모델, 데이터셋 | pre-trained 모델 |
+| `finetune_class(cls_name, pretrain_path)` | 클래스 fine-tuning 실행 | 클래스명, pre-train 경로 | fine-tuned 모델 |
+| `generate(model, device, prompt)` | 스케치 생성 | 모델, 프롬프트 토큰 | 생성된 토큰 시퀀스 |
+| `toks_to_strokes(toks)` | 토큰 → 폴리라인 | 토큰 리스트 | 폴리라인 좌표 리스트 |
+| `draw(polylines, ax)` | 폴리라인 시각화 | 폴리라인, matplotlib ax | (이미지 그림) |
+| `show_raw_samples(n)` | QuickDraw 원본 표시 | n=4 | (시각화) |
+| `show_generated(cls_models, cls_datasets)` | Original vs Generated 비교 | 모델 dict, 데이터셋 dict | (시각화) |
+| `save_sequential_strokes(cls_models, cls_datasets)` | Sequential stroke 이미지 저장 | 모델 dict, 데이터셋 dict | (이미지 파일 저장) |
+| `main(skip_eda, skip_pretrain, skip_finetune)` | 전체 파이프라인 실행 | boolean flags | (모든 단계 실행 & 파일 저장) |
 
 ---
 
