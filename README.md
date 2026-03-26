@@ -217,15 +217,15 @@ class SketchGPT(nn.Module):
 ### 1. **Attention 메커니즘**
 
 #### Scaled Dot-Product Attention
-$$\operatorname{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
 
 - $Q, K, V$: Query, Key, Value 행렬 (길이 $L$, 차원 $d_k = d_{model}/n_{heads}$)
 - $d_k = 512/8 = 64$
 - 인과 마스킹: future tokens를 $-\infty$로 설정
 
 #### Multi-Head Attention
-$$\text{MultiHead}(Q, K, V) = \text{Concat}(\operatorname{head}\_1, ..., \operatorname{head}\_8)W^O$$
-$$\operatorname{head}\_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)$$
+$$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_8)W^O$$
+$$\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)$$
 
 - 8개 병렬 어텐션 헤드
 - 각 헤드는 독립적인 가중치 행렬 사용
@@ -236,7 +236,7 @@ $$\operatorname{head}\_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)$$
 $$\mathcal{L}_{NTP} = -\sum_{t=1}^{L-1} \log P(x_t | x_{<t}; \theta)$$
 
 여기서 $P(x_t | x_{<t})$는 모델의 예측 확률:
-$$P(x_t | x_{<t}) = \text{softmax}(\operatorname{SketchGPT}(x_{<t}))[x_t]$$
+$$P(x_t | x_{<t}) = \text{softmax}(\text{SketchGPT}(x_{<t}))[x_t]$$
 
 **구현**:
 ```python
@@ -277,7 +277,7 @@ $$P = \{\mathbf{p}_k : \mathbf{p}_k = [\cos(2\pi k/16), \sin(2\pi k/16)]\}_{k=0}
 - 각 벡터는 단위 벡터 (norm = 1)
 
 #### Primitive ID 계산
-$$\operatorname{prim\_id}(dx, dy) = \arg\max_k \left(\frac{\mathbf{p}_k \cdot [dx, dy]}{||[dx, dy]||}\right)$$
+$$\text{prim\_id}(dx, dy) = \arg\max_k \left(\frac{\mathbf{p}_k \cdot [dx, dy]}{||[dx, dy]||}\right)$$
 
 - $[dx, dy]$를 정규화한 후 가장 가까운 primitive 방향 선택
 
@@ -296,10 +296,10 @@ $$L = \sqrt{dx^2 + dy^2}, \quad \lambda = 0.01 \text{ (PRIM\_LENGTH)}$$
 #### 절대 좌표 → 상대 좌표 변환
 각 stroke 시퀀스 $s3 = [[x_0, y_0], [x_1, y_1], ..., [x_n, y_n]]$를 다음과 같이 변환:
 
-$$x_{\operatorname{abs}}^{(i)} = x_0 + \sum_{j=0}^{i-1} dx_j, \quad y_{\operatorname{abs}}^{(i)} = y_0 + \sum_{j=0}^{i-1} dy_j$$
+$$x_{\text{abs}}^{(i)} = x_0 + \sum_{j=0}^{i-1} dx_j, \quad y_{\text{abs}}^{(i)} = y_0 + \sum_{j=0}^{i-1} dy_j$$
 
 #### 좌표 정규화 (각 사각형 [0, 1]×[0, 1])
-$$x'_i = \frac{x_{\operatorname{abs}}^{(i)} - \min_j x_{\operatorname{abs}}^{(j)}}{\max_j x_{\operatorname{abs}}^{(j)} - \min_j x_{\operatorname{abs}}^{(j)} + \epsilon}$$
+$$x'_i = \frac{x_{\text{abs}}^{(i)} - \min_j x_{\text{abs}}^{(j)}}{\max_j x_{\text{abs}}^{(j)} - \min_j x_{\text{abs}}^{(j)} + \epsilon}$$
 
 비슷하게 $y'_i$도 정규화.
 
@@ -318,7 +318,7 @@ $$\eta_t = \eta_{\min} + \frac{1}{2}(\eta_0 - \eta_{\min})\left(1 + \cos\frac{\p
 - $T = 15$ (pre-train epochs), $10$ (fine-tune epochs)
 
 ### 7. **Gradient Clipping**
-$$\|\nabla_\theta \mathcal{L}\| > \operatorname{clip\_norm}(=1.0) \Rightarrow \nabla_\theta \mathcal{L} \leftarrow \operatorname{clip\_norm} \cdot \frac{\nabla_\theta \mathcal{L}}{\|\nabla_\theta \mathcal{L}\|}$$
+$$\|\nabla_\theta \mathcal{L}\| > \text{clip\_norm}(=1.0) \Rightarrow \nabla_\theta \mathcal{L} \leftarrow \text{clip\_norm} \cdot \frac{\nabla_\theta \mathcal{L}}{\|\nabla_\theta \mathcal{L}\|}$$
 
 Exploding gradient 방지
 
