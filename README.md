@@ -273,23 +273,23 @@ sampler = WeightedRandomSampler(
 #### Primitive 빌드
 $$P = \{\mathbf{p}_k : \mathbf{p}_k = [\cos(2\pi k/16), \sin(2\pi k/16)]\}_{k=0}^{15}$$
 
-- $N_{primitives} = 16$개 균등 분포 벡터
+$N_{primitives} = 16$개 균등 분포 벡터
 - 각 벡터는 단위 벡터 (norm = 1)
 
 #### Primitive ID 계산
 $$\text{prim\_id}(dx, dy) = \arg\max_k \left(\frac{\mathbf{p}_k \cdot [dx, dy]}{||[dx, dy]||}\right)$$
 
-- $[dx, dy]$를 정규화한 후 가장 가까운 primitive 방향 선택
+$[dx, dy]$를 정규화한 후 가장 가까운 primitive 방향 선택
 
 #### Scale Factor (반복 횟수)
 $$s(dx, dy) = \max(1, \min(8, \lceil L / \lambda \rceil))$$
 $$L = \sqrt{dx^2 + dy^2}, \quad \lambda = 0.01 \text{ (PRIM\_LENGTH)}$$
 
 예시:
-- $L = 0.005$: $s = 1$ (1회 반복)
-- $L = 0.01$: $s = 1$ (1회)
-- $L = 0.02$: $s = 2$ (2회)
-- $L = 0.08$: $s = 8$ (8회, 최대값)
+$L = 0.005$: $s = 1$ (1회 반복)
+$L = 0.01$: $s = 1$ (1회)
+$L = 0.02$: $s = 2$ (2회)
+$L = 0.08$: $s = 8$ (8회, 최대값)
 
 ### 5. **정규화 (Normalization)**
 
@@ -313,9 +313,9 @@ $$\Delta x'_i = x'_i - x'_{i-1}, \quad \Delta y'_i = y'_i - y'_{i-1}$$
 #### Cosine Annealing
 $$\eta_t = \eta_{\min} + \frac{1}{2}(\eta_0 - \eta_{\min})\left(1 + \cos\frac{\pi t}{T}\right)$$
 
-- $\eta_0 = 0.001$ (pre-train), $0.0001$ (fine-tune)
-- $\eta_{\min} = 0.1 \times \eta_0$
-- $T = 15$ (pre-train epochs), $10$ (fine-tune epochs)
+$\eta_0 = 0.001$ (pre-train), $0.0001$ (fine-tune)
+$\eta_{\min} = 0.1 \times \eta_0$
+$T = 15$ (pre-train epochs), $10$ (fine-tune epochs)
 
 ### 7. **Gradient Clipping**
 $$\|\nabla_\theta \mathcal{L}\| > \text{clip\_norm}(=1.0) \Rightarrow \nabla_\theta \mathcal{L} \leftarrow \text{clip\_norm} \cdot \frac{\nabla_\theta \mathcal{L}}{\|\nabla_\theta \mathcal{L}\|}$$
